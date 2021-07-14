@@ -1,0 +1,313 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### **The Sparks Foundation: Graduate Rotational Internship Program July 2021**
+### **_Domain: Data Science & Business Analytics_**   
+
+#### _Name: Anna Miriam Philip_  
+
+<br/>    
+
+#### **Project Topic: Prediction using Unsupervised Machine Learning**    
+#### Project Level: Beginner
+#### Project Aim: To find the optimum number of clusters from the given dataset and visualize them.  
+
+<br/>  
+
+#### Programming Language: R  
+#### Algorithm: K - Means Clustering - Unsupervised Algorithm    
+
+<br/>  
+
+#### Dataset: Iris - Open source dataset  
+##### This famous (Fisher's or Anderson's) iris data set gives the measurements in centimeters of the variables sepal length and width and petal length and width, respectively, for 50 flowers from each of 3 species of iris. The species are Iris setosa, versicolor, and virginica.  
+##### "iris" is a data frame with 150 cases (rows) and 5 variables (columns) named Sepal.Length, Sepal.Width, Petal.Length, Petal.Width, and Species.
+
+<br/>
+
+### **_Installing Required Libraries:_** 
+
+```{r}
+# install.packages("patchwork")
+# install.packages("tidyverse")
+# install.packages("gridExtra")
+# install.packages("ggExtra")
+# install.packages("gtable")
+# install.packages("ggpubr")
+```
+
+<br/>
+
+### **_Reading the Data into a .csv file_**
+
+```{r}
+
+write.csv(iris,"irisdataset.csv")
+irisdf = read.csv("irisdataset.csv")
+
+```
+
+<br/>
+
+### **_Exploratory Data Analysis:_**
+
+```{r}
+
+# Loading the Data
+View(irisdf)
+
+# Shape of the Data
+dim(irisdf)
+
+# Top 10 rows of the Data
+head(irisdf, n=10)
+
+# Structure of the Data
+str(irisdf)
+
+```
+
+```{r}
+
+# Summary of the Data
+summary(irisdf)
+
+```
+
+#### _Observations:_
+
+##### 1. No NA values are present in this dataset.
+##### 2. We have 50 numbers each of the species - Setosa, Versicolor & Virginica.
+##### 3. The mean and median are not far apart thus indicating less number of outliers.
+
+<br/>
+
+### **_Data Visualization:_**
+
+#### _Boxplots - to examine outliers:_
+
+```{r}
+
+library(gridExtra)
+library(ggplot2)
+library(ggpubr)
+
+# SEPAL LENGTH:
+plot1 = ggplot(data = irisdf) + geom_boxplot(aes(x = Species, 
+                                               y = Sepal.Length, 
+                                               fill = Species), width=0.5) + 
+  labs(title = "Boxplot - Sepal Length", 
+       x = "Species", y = "Sepal Length") + theme(legend.position = "none")
+
+plot1 = plot1 + scale_fill_brewer(palette = "Dark2")
+
+# SEPAL WIDTH:
+plot2 = ggplot(data = irisdf) + geom_boxplot(aes(x = Species, 
+                                               y = Sepal.Width, 
+                                               fill = Species), width=0.5) + 
+  labs(title = "Boxplot - Sepal Width", x = "Species", 
+       y = "Sepal Width") + theme(legend.position = "none")
+
+plot2 = plot2 + scale_fill_brewer(palette = "Dark2")
+
+# PETAL LENGTH:
+plot3 = ggplot(data = irisdf) + geom_boxplot(aes(x = Species, 
+                                               y = Petal.Length, 
+                                               fill = Species), width = 0.5) + 
+  labs(title = "Boxplot - Petal Length", x = "Species", 
+       y = "Petal Length") + theme(legend.position = "none")
+
+plot3 = plot3 + scale_fill_brewer(palette = "Dark2")
+
+# PETAL WIDTH:
+plot4 = ggplot(data = irisdf) + geom_boxplot(aes(x = Species, 
+                                               y = Petal.Width, 
+                                               fill = Species), width = 0.5) + 
+  labs(title = "Boxplot - Petal Width", x = "Species", 
+       y = "Petal Width") + theme(legend.position = "none")
+
+plot4 = plot4 + scale_fill_brewer(palette = "Dark2")
+
+grid.arrange(plot1, plot2, plot3, plot4, ncol = 2)
+
+```
+
+#### _Observations:_
+
+##### 1. We have some outliers in all the columns.
+##### 2. Setosa and Virginica are respectively the smallest and the largest of the flowers.
+##### 3. Sepal Width is different from the other attributes.
+
+<br/>
+
+### **_Correlations:_**
+
+```{r}
+
+# Correlation:
+cor(irisdf[2:5])
+
+# Kendall's Correlation Method: 
+# The Kendall rank correlation coefficient or Kendall’s tau statistic is used to estimate a rank-based measure of association. This test may be used if the data do not necessarily come from a bivariate normal distribution.
+cor(irisdf[2:5], method="kendall")
+
+# Spearman's Correlation Method: 
+# Spearman’s rho statistic is used to estimate a rank-based measure of association. This test may be used if the data do not come from a bivariate normal distribution.
+cor(irisdf[2:5], method="spearman")
+
+# Correlation between Sepal.Length and Sepal.Width
+cor(irisdf[2:3])
+
+# Correlation between Petal.length and Petal.Width
+cor(irisdf[4:5])
+
+cr = cor(irisdf[2:5])
+
+library(corrplot)
+col3 = hcl.colors(10, "YlOrRd", rev = TRUE)
+corrplot(cr, method = 'shade', order = 'AOE', col = col3, diag = FALSE) 
+
+```
+
+<br/>
+
+### **_Finding the optimal number of clusters:_**
+
+#### During our implementation, we need to calculate _“With-In-Sum-Of-Squares (WSS)”_ iteratively. 
+#### WSS is a measure to explain the homogeneity within a cluster. Let’s create a function to plot WSS against the number of clusters, so that we can call it iteratively whenever required (Function name – “wssplot”). We will be using “NbClust” library for this illustration.
+
+```{r}
+
+## Finding optimal number of clusters from WSS
+
+wssplot = function(data, nc = 15, seed = 123){
+  wss = (nrow(data)-1)*sum(apply(data,2,var))
+  for (i in 2:nc){
+    set.seed(seed)
+    wss[i] = sum(kmeans(data, centers = i)$withinss)}
+  plot(1:nc, wss, type = "b", xlab = "Number of Clusters",
+       ylab = "Within groups sum of squares")}
+wssplot(irisdf[,2:5], nc = 10)
+
+```
+
+##### nc – maximum number of clusters we are giving
+##### seed – random initialization of clusters      
+##### Here, we have plotted WSS with number of clusters. From here we can see that there is not much decrease in WSS even if we increase the number of clusters beyond 6. This graph is also known as “Elbow Curve” where the bending point (E.g, nc = 6 in our case) is known as “Elbow Point”. From the above plot we can conclude that if we keep number of clusters = 2, we should be able to get good clusters with good homogeneity within themselves.   
+
+
+<br/> 
+
+
+```{r}
+
+# Identifying the optimal number of clusters using NbClust:
+
+library(NbClust)
+set.seed(123)
+Nclus = NbClust(irisdf[,2:5], min.nc = 2, max.nc = 4, method = "kmeans")
+table(Nclus$Best.n[1,])
+
+```
+
+<br/>
+
+```{r}
+
+barplot(table(Nclus$Best.n[1,]), ylim = range(0,15),
+        xlab = "Number of Clusters", ylab = "Number of Criteria",
+        main = "Number of Clusters Chosen by 26 Criteria", col = c("blue","purple","pink"))
+
+```
+
+#### _Observations:_ According to the majority rule, the best number of clusters is 2.
+
+<br/>
+
+### **_Forming & Plotting the clusters:_**
+
+```{r}
+
+kmeans_clust = kmeans(x = irisdf[,2:5], centers = 2, nstart = 5)
+kmeans_clust
+
+```
+
+#### _Observations:_
+
+##### 1. This is a K-means clustering with 2 clusters of sizes 97 and 53.
+##### 2. The percentage similarity between the data in the same cluster is 77.6%.
+
+<br/>
+
+### **_Plotting the clusters:_**
+
+```{r}
+
+library(fpc)
+library(cluster)
+plotcluster(irisdf[,2:5], kmeans_clust$cluster)
+
+# Better plot:
+clusplot(irisdf[,2:5], main = "Clusterplot - When k=2", 
+         kmeans_clust$cluster, 
+         color = TRUE, shade = TRUE, labels = 2, lines = 1)
+
+```
+
+<br/>
+
+### **_Clustering Validation - Silhouette Width:_**
+
+#### The term _cluster validation_ is used to design the procedure of evaluating the goodness of clustering algorithm results. This is important to avoid finding patterns in a random data, as well as, in the situation where you want to compare two clustering algorithms.
+
+#### The _silhouette analysis_ measures how well an observation is clustered and it estimates the average distance between clusters. The silhouette plot displays a measure of how close each point in one cluster is to points in the neighboring clusters.
+
+<br/>
+
+```{r}
+
+library(factoextra)
+
+# When k = 2
+
+sil_k2 = silhouette(kmeans_clust$cluster, dist(irisdf[,2:5]))
+fviz_silhouette(sil_k2)
+
+```
+
+#### _Observations:_
+
+##### 1. Cluster 1 (97 data points) has an average silhouette width of 0.63.
+##### 2. Cluster 2 (53 data points) has an average silhouette width of 0.77.
+##### 3. Therefore, average silhouette width is 0.68.
+
+<br/>
+
+#### **_Inference:_**
+
+##### We have separated or categorised our data into two clusters. The data within each cluster are about 77.6% similar and the K-Means model has performed well having a Silhouette width of 0.68 on an average, making the model good for categorisation.
+
+<br/> <br/> <br/> <br/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
