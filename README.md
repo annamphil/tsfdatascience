@@ -8,11 +8,11 @@
 ### Programming Language: R Software
 
 ### Dataset: Iris - Open source dataset
-### This famous (Fisher’s or Anderson’s) iris data set gives the measurements in centimeters of
-the variables sepal length and width and petal length and width, respectively, for 50 flowers
-from each of 3 species of iris. The species are Iris setosa, versicolor, and virginica.
-### “iris” is a data frame with 150 cases (rows) and 5 variables (columns) named Sepal.Length,
-Sepal.Width, Petal.Length, Petal.Width, and Species.
+#### This famous (Fisher’s or Anderson’s) iris data set gives the measurements in centimeters of 
+#### the variables sepal length and width and petal length and width, respectively, for 50 flowers
+#### from each of 3 species of iris. The species are Iris setosa, versicolor, and virginica.
+#### “iris” is a data frame with 150 cases (rows) and 5 variables (columns) named Sepal.Length,
+#### Sepal.Width, Petal.Length, Petal.Width, and Species.
 
 ## Table of Contents:
 ### 1. Installing the Packages
